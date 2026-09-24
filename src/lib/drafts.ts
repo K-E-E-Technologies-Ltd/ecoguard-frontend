@@ -1,0 +1,7 @@
+import type {Draft,Category} from './types';
+const DB='ecoguard-drafts-v1';
+function open():Promise<IDBDatabase>{return new Promise((resolve,reject)=>{const req=indexedDB.open(DB,1);req.onupgradeneeded=()=>req.result.createObjectStore('drafts',{keyPath:'owner'});req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});}
+export async function loadDraft(owner:string):Promise<Draft|undefined>{const db=await open();return new Promise((resolve,reject)=>{const tx=db.transaction('drafts','readonly');const req=tx.objectStore('drafts').get(owner);req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);tx.oncomplete=()=>db.close();});}
+export async function saveDraft(draft:Draft){const db=await open();return new Promise<void>((resolve,reject)=>{const tx=db.transaction('drafts','readwrite');tx.objectStore('drafts').put(draft);tx.oncomplete=()=>{db.close();resolve();};tx.onerror=()=>{db.close();reject(tx.error);};});}
+export async function removeDraft(owner:string){const db=await open();return new Promise<void>((resolve,reject)=>{const tx=db.transaction('drafts','readwrite');tx.objectStore('drafts').delete(owner);tx.oncomplete=()=>{db.close();resolve();};tx.onerror=()=>reject(tx.error);});}
+export const newDraft=(owner:string, category:Category='wildlife'):Draft=>({owner,client_id:crypto.randomUUID(),category,title:'',description:'',species:category==='wildlife'?'Unknown animal':'',area_id:'',observed_at:new Date().toISOString(),latitude:'',longitude:'',share_location:false,consent:false});
